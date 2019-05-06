@@ -1,0 +1,36 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th scope="col">#</th>
+            <th scope="col">Password</th>
+            <th scope="col">Hash</th>
+            <th scope="col">Length</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <th scope="row">1</th>
+            <td><samp>@Model.Password1</samp></td>
+            <td><samp>@Model.Password1Hash</samp></td>
+            <td>@Model.Password1Hash.Length</td>
+        </tr>
+        <tr>
+            <th scope="row">2</th>
+            <td><samp>@Model.Password2</samp></td>
+            <td><samp>@Model.Password2Hash</samp></td>
+            <td>@Model.Password3Hash.Length</td>
+        </tr>
+        <tr>
+            <th scope="row">3</th>
+            <td><samp>@Model.Password3</samp></td>
+            <td><samp>@Model.Password3Hash</samp></td>
+            <td>@Model.Password3Hash.Length</td>
+        </tr>
+    </tbody>
+</table>
