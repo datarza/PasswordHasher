@@ -1,37 +1,115 @@
-## Welcome to GitHub Pages
+How to safely store passwords in the database? Is the default ASP.NET Core implementation the good choice? For what is &lt;TUser> used in the default ASP.NET Core PasswordHasher class definition? 
 
-You can use the [editor on GitHub](https://github.com/CanadianBeaver/PasswordHasher/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+The default password hasher for ASP.NET Core Identity uses PBKDF2 for password hashing that is not support all hashing algorithms.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+## PasswordHasher notes
 
-### Markdown
+- Supports SHA1, SHA256, SHA384 and SHA512 hashing algorithms
+- Automatically generated randomized salt
+- Count of iterations is a variable parameter
+- Default parameters are strong  enough
+- Inbound byte[] comparator is a service and can be changed
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+This library contains source code that I found on the Internet. Unfortunately, this code had minor issue with array indices. I fixed it and adopted it for ASP.NET Core 2.2. I believe that this library can be also used for ASP.NET Core 2.0.
+
+### Supported interface
 
 ```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
+    public interface IPasswordHasher
+    {		
+        string HashPassword(string password);
+        bool VerifyHashedPassword(string hashedPassword, string providedPassword);
+    }
 ```
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
+### Parameters can be specified in Startup.cs
 
-### Jekyll Themes
+```markdown
+    public void ConfigureServices(IServiceCollection services)
+    {
+        // Configuring PasswordHasher
+        services.Configure<PasswordHasherOptions>(options =>
+        {
+            options.HashAlgorithm = PasswordHasherAlgorithms.SHA1;
+            options.SaltSize = 16;
+            options.Iterations = 8192;
+        });
+    
+        // Registering PasswordHasher
+        services.AddPasswordHasher();
+        
+        services.AddMvc();
+    }
+```
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/CanadianBeaver/PasswordHasher/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+### Using example
+
+```markdown
+    public class IndexModel : PageModel
+    {
+        private readonly IPasswordHasher hasher;
+    
+        public IndexModel(IPasswordHasher hasher)
+        {
+            this.hasher = hasher;
+        }
+        
+        public void OnGet()
+        {
+            var password = "my password";
+            var passwordHash = hasher.HashPassword(password);
+            var passwordCheck = hasher.VerifyHashedPassword(passwordHash, password);
+        }
+    }
+```
+
+### Deep into hashing passwords
+
+```markdown
+    public string HashPassword(string password)
+    {
+        byte[] saltBuffer;
+        byte[] hashBuffer;
+        
+        using (var keyDerivation = new Rfc2898DeriveBytes(password, options.SaltSize, options.Iterations, options.HashAlgorithmName))
+        {
+            saltBuffer = keyDerivation.Salt;
+            hashBuffer = keyDerivation.GetBytes(options.HashSize);
+        }
+        
+        byte[] result = new byte[options.HashSize + options.SaltSize];
+        Buffer.BlockCopy(hashBuffer, 0, result, 0, options.HashSize);
+        Buffer.BlockCopy(saltBuffer, 0, result, options.HashSize, options.SaltSize);
+        return Convert.ToBase64String(result);
+    }
+```
+
+### Deep into verifing passwords
+
+```markdown
+    public bool VerifyHashedPassword(string hashedPassword, string providedPassword)
+    {
+    	byte[] hashedPasswordBytes = Convert.FromBase64String(hashedPassword);
+    	if (hashedPasswordBytes.Length != options.HashSize + options.SaltSize)
+    	{
+    		return false;
+    	}
+    
+    	byte[] _hashBytes = new byte[options.HashSize];
+    	Buffer.BlockCopy(hashedPasswordBytes, 0, _hashBytes, 0, options.HashSize);
+    	byte[] _saltBytes = new byte[options.SaltSize];
+    	Buffer.BlockCopy(hashedPasswordBytes, options.HashSize, _saltBytes, 0, options.SaltSize);
+    
+    	byte[] _providedHashBytes;
+    	using (var keyDerivation = new Rfc2898DeriveBytes(providedPassword, _saltBytes, options.Iterations, options.HashAlgorithmName))
+    	{
+    		_providedHashBytes = keyDerivation.GetBytes(options.HashSize);
+    	}
+    
+    	return comparer.Equals(_hashBytes, _providedHashBytes);
+    }
+```
 
 ### Support or Contact
 
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+Having questions? [Contact me](https://github.com/CanadianBeaver) and I will help you sort it out.
