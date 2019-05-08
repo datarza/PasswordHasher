@@ -1,28 +1,72 @@
-How to safely store passwords in the database? Is the default ASP.NET Core implementation the good choice? For what is &lt;TUser> used in the default ASP.NET Core PasswordHasher class definition? 
+Did you like how the [PasswordHasher](https://github.com/aspnet/AspNetCore/blob/master/src/Identity/Extensions.Core/src/PasswordHasher.cs) was implemented in ASP.NET Core? What is the &lt;TUser> used for in class definition? Why only SHA1 and SHA256 are supported? Why the size of salt is a constant? Is the default ASP.NET Core implementation a good choice?
 
-The default password hasher for ASP.NET Core Identity uses PBKDF2 for password hashing that is not support all hashing algorithms.
+## PasswordHasher could be better
 
-## PasswordHasher notes
+If you are not familiar with the default implementation of PasswordHasher in ASP.NET Core, I would like to recommend an [excellent article](https://andrewlock.net/exploring-the-asp-net-core-identity-passwordhasher) which explains everything.
 
-- Supports SHA1, SHA256, SHA384 and SHA512 hashing algorithms
-- Automatically generated randomized salt
-- Count of iterations is a variable parameter
-- Default parameters are strong  enough
-- Inbound byte[] comparator is a service and can be changed
+Some ideas for better implementation of PasswordHasher:
 
-This library contains source code that I found on the Internet. Unfortunately, this code had minor issue with array indices. I fixed it and adopted it for ASP.NET Core 2.2. I believe that this library can be also used for ASP.NET Core 2.0.
+- Setting only the hashing algorithm name should be enough for working with the PasswordHasher
+- The salt size and iterations count can be defined as parameters by user or can be counted as default values related to the hashing algorithms
+- SHA1 is good for runtime performance, SHA256 is enough for security storage, SHA384 and SHA512 hashing algorithms should be also implemented 
+- The result should not contain any hashing parameters, which means: do no not keep salt size, iterations count or hashing algorithm name in the hash
+- The result should be the <code>string</code> that can be stored in the database with predictable length
+- Internal <code>byte[]</code> comparator for verifing passwords should be a microservice
 
-### Supported interface
+### Implementation
+
+The default password hasher for ASP.NET Core Identity uses <code>PBKDF2</code> for password hashing that is not support all hashing algorithms. The [Rfc2898DeriveBytes class](https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.rfc2898derivebytes?view=netcore-2.2) from the <code>System.Security.Cryptography</code> namespace supports all that we need to get the result we wanted. This class can generate pseudo-randomized salt and supports all SHA hashing algorithms.
+
+#### Method for hashing passwords
 
 ```markdown
-    public interface IPasswordHasher
-    {		
-        string HashPassword(string password);
-        bool VerifyHashedPassword(string hashedPassword, string providedPassword);
+    public string HashPassword(string password)
+    {
+        byte[] saltBuffer;
+        byte[] hashBuffer;
+        
+        using (var keyDerivation = new Rfc2898DeriveBytes(password, options.SaltSize, options.Iterations, options.HashAlgorithmName))
+        {
+            saltBuffer = keyDerivation.Salt;
+            hashBuffer = keyDerivation.GetBytes(options.HashSize);
+        }
+        
+        byte[] result = new byte[options.HashSize + options.SaltSize];
+        Buffer.BlockCopy(hashBuffer, 0, result, 0, options.HashSize);
+        Buffer.BlockCopy(saltBuffer, 0, result, options.HashSize, options.SaltSize);
+        return Convert.ToBase64String(result);
     }
 ```
 
-### Parameters can be specified in Startup.cs
+#### Method for verifing the hash and passwords
+
+```markdown
+    public bool VerifyHashedPassword(string hashedPassword, string providedPassword)
+    {
+    	byte[] hashedPasswordBytes = Convert.FromBase64String(hashedPassword);
+    	if (hashedPasswordBytes.Length != options.HashSize + options.SaltSize)
+    	{
+    		return false;
+    	}
+    
+    	byte[] _hashBytes = new byte[options.HashSize];
+    	Buffer.BlockCopy(hashedPasswordBytes, 0, _hashBytes, 0, options.HashSize);
+    	byte[] _saltBytes = new byte[options.SaltSize];
+    	Buffer.BlockCopy(hashedPasswordBytes, options.HashSize, _saltBytes, 0, options.SaltSize);
+    
+    	byte[] _providedHashBytes;
+    	using (var keyDerivation = new Rfc2898DeriveBytes(providedPassword, _saltBytes, options.Iterations, options.HashAlgorithmName))
+    	{
+    		_providedHashBytes = keyDerivation.GetBytes(options.HashSize);
+    	}
+    
+    	return comparer.Equals(_hashBytes, _providedHashBytes);
+    }
+```
+
+### Setting up
+
+The parameters for PasswordHasher can be specified in <code>Startup.cs</code> via [Options pattern](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/configuration/options?view=aspnetcore-2.2). Also, in <code>Startup.cs</code> can be registered the PasswordHasher as a microservice.
 
 ```markdown
     public void ConfigureServices(IServiceCollection services)
@@ -60,53 +104,6 @@ This library contains source code that I found on the Internet. Unfortunately, t
             var passwordHash = hasher.HashPassword(password);
             var passwordCheck = hasher.VerifyHashedPassword(passwordHash, password);
         }
-    }
-```
-
-### Deep into hashing passwords
-
-```markdown
-    public string HashPassword(string password)
-    {
-        byte[] saltBuffer;
-        byte[] hashBuffer;
-        
-        using (var keyDerivation = new Rfc2898DeriveBytes(password, options.SaltSize, options.Iterations, options.HashAlgorithmName))
-        {
-            saltBuffer = keyDerivation.Salt;
-            hashBuffer = keyDerivation.GetBytes(options.HashSize);
-        }
-        
-        byte[] result = new byte[options.HashSize + options.SaltSize];
-        Buffer.BlockCopy(hashBuffer, 0, result, 0, options.HashSize);
-        Buffer.BlockCopy(saltBuffer, 0, result, options.HashSize, options.SaltSize);
-        return Convert.ToBase64String(result);
-    }
-```
-
-### Deep into verifing passwords
-
-```markdown
-    public bool VerifyHashedPassword(string hashedPassword, string providedPassword)
-    {
-    	byte[] hashedPasswordBytes = Convert.FromBase64String(hashedPassword);
-    	if (hashedPasswordBytes.Length != options.HashSize + options.SaltSize)
-    	{
-    		return false;
-    	}
-    
-    	byte[] _hashBytes = new byte[options.HashSize];
-    	Buffer.BlockCopy(hashedPasswordBytes, 0, _hashBytes, 0, options.HashSize);
-    	byte[] _saltBytes = new byte[options.SaltSize];
-    	Buffer.BlockCopy(hashedPasswordBytes, options.HashSize, _saltBytes, 0, options.SaltSize);
-    
-    	byte[] _providedHashBytes;
-    	using (var keyDerivation = new Rfc2898DeriveBytes(providedPassword, _saltBytes, options.Iterations, options.HashAlgorithmName))
-    	{
-    		_providedHashBytes = keyDerivation.GetBytes(options.HashSize);
-    	}
-    
-    	return comparer.Equals(_hashBytes, _providedHashBytes);
     }
 ```
 
