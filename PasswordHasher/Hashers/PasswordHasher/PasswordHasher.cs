@@ -57,18 +57,18 @@ namespace myClippit.ApplicationCore.Shared.Hashers
 				return false;
 			}
 
-			byte[] _hashBytes = new byte[options.HashSize];
-			Buffer.BlockCopy(hashedPasswordBytes, 0, _hashBytes, 0, options.HashSize);
-			byte[] _saltBytes = new byte[options.SaltSize];
-			Buffer.BlockCopy(hashedPasswordBytes, options.HashSize, _saltBytes, 0, options.SaltSize);
+			byte[] hashBytes = new byte[options.HashSize];
+			Buffer.BlockCopy(hashedPasswordBytes, 0, hashBytes, 0, options.HashSize);
+			byte[] saltBytes = new byte[options.SaltSize];
+			Buffer.BlockCopy(hashedPasswordBytes, options.HashSize, saltBytes, 0, options.SaltSize);
 
-			byte[] _providedHashBytes;
-			using (var keyDerivation = new Rfc2898DeriveBytes(providedPassword, _saltBytes, options.Iterations, options.HashAlgorithmName))
+			byte[] providedHashBytes;
+			using (var keyDerivation = new Rfc2898DeriveBytes(providedPassword, saltBytes, options.Iterations, options.HashAlgorithmName))
 			{
-				_providedHashBytes = keyDerivation.GetBytes(options.HashSize);
+				providedHashBytes = keyDerivation.GetBytes(options.HashSize);
 			}
 
-			return comparer.Equals(_hashBytes, _providedHashBytes);
+			return comparer.Equals(hashBytes, providedHashBytes);
 		}
 		
 	}

@@ -43,24 +43,24 @@ The default password hasher for ASP.NET Core Identity uses <code>PBKDF2</code> f
 ```markdown
     public bool VerifyHashedPassword(string hashedPassword, string providedPassword)
     {
-    	byte[] hashedPasswordBytes = Convert.FromBase64String(hashedPassword);
-    	if (hashedPasswordBytes.Length != options.HashSize + options.SaltSize)
-    	{
-    		return false;
-    	}
-    
-    	byte[] _hashBytes = new byte[options.HashSize];
-    	Buffer.BlockCopy(hashedPasswordBytes, 0, _hashBytes, 0, options.HashSize);
-    	byte[] _saltBytes = new byte[options.SaltSize];
-    	Buffer.BlockCopy(hashedPasswordBytes, options.HashSize, _saltBytes, 0, options.SaltSize);
-    
-    	byte[] _providedHashBytes;
-    	using (var keyDerivation = new Rfc2898DeriveBytes(providedPassword, _saltBytes, options.Iterations, options.HashAlgorithmName))
-    	{
-    		_providedHashBytes = keyDerivation.GetBytes(options.HashSize);
-    	}
-    
-    	return comparer.Equals(_hashBytes, _providedHashBytes);
+        byte[] hashedPasswordBytes = Convert.FromBase64String(hashedPassword);
+        if (hashedPasswordBytes.Length != options.HashSize + options.SaltSize)
+        {
+                return false;
+        }
+
+        byte[] hashBytes = new byte[options.HashSize];
+        Buffer.BlockCopy(hashedPasswordBytes, 0, hashBytes, 0, options.HashSize);
+        byte[] saltBytes = new byte[options.SaltSize];
+        Buffer.BlockCopy(hashedPasswordBytes, options.HashSize, saltBytes, 0, options.SaltSize);
+
+        byte[] providedHashBytes;
+        using (var keyDerivation = new Rfc2898DeriveBytes(providedPassword, saltBytes, options.Iterations, options.HashAlgorithmName))
+        {
+                providedHashBytes = keyDerivation.GetBytes(options.HashSize);
+        }
+
+        return comparer.Equals(hashBytes, providedHashBytes);
     }
 ```
 
