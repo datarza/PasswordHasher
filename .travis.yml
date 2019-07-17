@@ -1,5 +1,10 @@
 language: csharp
 solution: PasswordHasher.sln
-sudo: required
-dist: xenial
+mono: none
 dotnet: 2.2
+script:
+    - dotnet restore
+    - dotnet build
+    - dotnet test TestProject/TestProject.csproj
+after_script:
+    - dotnet test TestProject/TestProject.csproj
