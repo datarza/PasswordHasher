@@ -21,7 +21,7 @@ namespace TestProject.ApplicationCore.Shared
 			{
 				new PasswordHasher(BuildOptions(saltSize: saltSize));
 			});
-			Assert.Equal("Specified argument was out of the range of valid values.\r\nParameter name: SaltSize", ex.Message);
+			Assert.Equal("Specified argument was out of the range of valid values." + Environment.NewLine + "Parameter name: SaltSize", ex.Message);
 		}
 
 		[Theory]
@@ -34,7 +34,7 @@ namespace TestProject.ApplicationCore.Shared
 			{
 				new PasswordHasher(BuildOptions(iterations: iterations));
 			});
-			Assert.Equal("Specified argument was out of the range of valid values.\r\nParameter name: Iterations", ex.Message);
+			Assert.Equal("Specified argument was out of the range of valid values." + Environment.NewLine + "Parameter name: Iterations", ex.Message);
 		}
 
 		[Theory]
@@ -56,7 +56,7 @@ namespace TestProject.ApplicationCore.Shared
 			var failedResult = hasher.VerifyHashedPassword(hashedPassword, "password 2");
 			Assert.False(failedResult);
 		}
-		
+
 		[Theory]
 		[InlineData(PasswordHasherAlgorithms.SHA1, 8, 40)]
 		[InlineData(PasswordHasherAlgorithms.SHA1, 9, 40)]
@@ -92,7 +92,7 @@ namespace TestProject.ApplicationCore.Shared
 			options.HashAlgorithm = PasswordHasherAlgorithms.SHA1;
 			options.SaltSize = expectedSize;
 			options.HashAlgorithm = algorithm;
-			
+
 			// Act & assert - failure case
 			Assert.Equal(expectedSize, options.HashSize);
 		}
