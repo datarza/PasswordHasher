@@ -1,6 +1,7 @@
 language: csharp
 solution: PasswordHasher.sln
 dist: xenial
+sudo: required
 mono: none
 dotnet: 2.2
 script:
