@@ -4,8 +4,6 @@ dist: xenial
 sudo: required
 mono: none
 dotnet: 2.2
-install:
- - dotnet restore
 script:
  - dotnet build
  - dotnet test
