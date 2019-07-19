@@ -19,7 +19,7 @@ The default password hasher for ASP.NET Core Identity uses <code>PBKDF2</code> f
 
 #### Method for hashing passwords
 
-```markdown
+```csharp
     public string HashPassword(string password)
     {
         byte[] saltBuffer;
@@ -40,7 +40,7 @@ The default password hasher for ASP.NET Core Identity uses <code>PBKDF2</code> f
 
 #### Method for verifing the hash and passwords
 
-```markdown
+```csharp
     public bool VerifyHashedPassword(string hashedPassword, string providedPassword)
     {
         byte[] hashedPasswordBytes = Convert.FromBase64String(hashedPassword);
@@ -68,7 +68,7 @@ The default password hasher for ASP.NET Core Identity uses <code>PBKDF2</code> f
 
 The parameters for PasswordHasher can be specified in <code>Startup.cs</code> via [Options pattern](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/configuration/options?view=aspnetcore-2.2). Also, in <code>Startup.cs</code> can be registered the PasswordHasher as a microservice.
 
-```markdown
+```csharp
     public void ConfigureServices(IServiceCollection services)
     {
         // Configuring PasswordHasher
@@ -88,7 +88,7 @@ The parameters for PasswordHasher can be specified in <code>Startup.cs</code> vi
 
 ### Using example
 
-```markdown
+```csharp
     public class IndexModel : PageModel
     {
         private readonly IPasswordHasher hasher;
