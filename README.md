@@ -110,3 +110,7 @@ public class IndexModel : PageModel
 ### Support or Contact
 
 Having questions? [Contact me](https://github.com/CanadianBeaver) and I will help you sort it out.
+
+<style>
+.inner { max-width: 900px !important}
+</style>
