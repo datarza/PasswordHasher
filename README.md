@@ -20,48 +20,48 @@ The default password hasher for ASP.NET Core Identity uses <code>PBKDF2</code> f
 #### Method for hashing passwords
 
 ```csharp
-    public string HashPassword(string password)
+public string HashPassword(string password)
+{
+    byte[] saltBuffer;
+    byte[] hashBuffer;
+    
+    using (var keyDerivation = new Rfc2898DeriveBytes(password, options.SaltSize, options.Iterations, options.HashAlgorithmName))
     {
-        byte[] saltBuffer;
-        byte[] hashBuffer;
-        
-        using (var keyDerivation = new Rfc2898DeriveBytes(password, options.SaltSize, options.Iterations, options.HashAlgorithmName))
-        {
-            saltBuffer = keyDerivation.Salt;
-            hashBuffer = keyDerivation.GetBytes(options.HashSize);
-        }
-        
-        byte[] result = new byte[options.HashSize + options.SaltSize];
-        Buffer.BlockCopy(hashBuffer, 0, result, 0, options.HashSize);
-        Buffer.BlockCopy(saltBuffer, 0, result, options.HashSize, options.SaltSize);
-        return Convert.ToBase64String(result);
+        saltBuffer = keyDerivation.Salt;
+        hashBuffer = keyDerivation.GetBytes(options.HashSize);
     }
+    
+    byte[] result = new byte[options.HashSize + options.SaltSize];
+    Buffer.BlockCopy(hashBuffer, 0, result, 0, options.HashSize);
+    Buffer.BlockCopy(saltBuffer, 0, result, options.HashSize, options.SaltSize);
+    return Convert.ToBase64String(result);
+}
 ```
 
 #### Method for verifing the hash and passwords
 
 ```csharp
-    public bool VerifyHashedPassword(string hashedPassword, string providedPassword)
+public bool VerifyHashedPassword(string hashedPassword, string providedPassword)
+{
+    byte[] hashedPasswordBytes = Convert.FromBase64String(hashedPassword);
+    if (hashedPasswordBytes.Length != options.HashSize + options.SaltSize)
     {
-        byte[] hashedPasswordBytes = Convert.FromBase64String(hashedPassword);
-        if (hashedPasswordBytes.Length != options.HashSize + options.SaltSize)
-        {
-                return false;
-        }
-
-        byte[] hashBytes = new byte[options.HashSize];
-        Buffer.BlockCopy(hashedPasswordBytes, 0, hashBytes, 0, options.HashSize);
-        byte[] saltBytes = new byte[options.SaltSize];
-        Buffer.BlockCopy(hashedPasswordBytes, options.HashSize, saltBytes, 0, options.SaltSize);
-
-        byte[] providedHashBytes;
-        using (var keyDerivation = new Rfc2898DeriveBytes(providedPassword, saltBytes, options.Iterations, options.HashAlgorithmName))
-        {
-                providedHashBytes = keyDerivation.GetBytes(options.HashSize);
-        }
-
-        return comparer.Equals(hashBytes, providedHashBytes);
+            return false;
     }
+
+    byte[] hashBytes = new byte[options.HashSize];
+    Buffer.BlockCopy(hashedPasswordBytes, 0, hashBytes, 0, options.HashSize);
+    byte[] saltBytes = new byte[options.SaltSize];
+    Buffer.BlockCopy(hashedPasswordBytes, options.HashSize, saltBytes, 0, options.SaltSize);
+
+    byte[] providedHashBytes;
+    using (var keyDerivation = new Rfc2898DeriveBytes(providedPassword, saltBytes, options.Iterations, options.HashAlgorithmName))
+    {
+            providedHashBytes = keyDerivation.GetBytes(options.HashSize);
+    }
+
+    return comparer.Equals(hashBytes, providedHashBytes);
+}
 ```
 
 ### Setting up
@@ -69,42 +69,42 @@ The default password hasher for ASP.NET Core Identity uses <code>PBKDF2</code> f
 The parameters for PasswordHasher can be specified in <code>Startup.cs</code> via [Options pattern](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/configuration/options?view=aspnetcore-2.2). Also, in <code>Startup.cs</code> can be registered the PasswordHasher as a microservice.
 
 ```csharp
-    public void ConfigureServices(IServiceCollection services)
+public void ConfigureServices(IServiceCollection services)
+{
+    // Configuring PasswordHasher
+    services.Configure<PasswordHasherOptions>(options =>
     {
-        // Configuring PasswordHasher
-        services.Configure<PasswordHasherOptions>(options =>
-        {
-            options.HashAlgorithm = PasswordHasherAlgorithms.SHA1;
-            options.SaltSize = 16;
-            options.Iterations = 8192;
-        });
+        options.HashAlgorithm = PasswordHasherAlgorithms.SHA1;
+        options.SaltSize = 16;
+        options.Iterations = 8192;
+    });
+
+    // Registering PasswordHasher
+    services.AddPasswordHasher();
     
-        // Registering PasswordHasher
-        services.AddPasswordHasher();
-        
-        services.AddMvc();
-    }
+    services.AddMvc();
+}
 ```
 
 ### Using example
 
 ```csharp
-    public class IndexModel : PageModel
+public class IndexModel : PageModel
+{
+    private readonly IPasswordHasher hasher;
+
+    public IndexModel(IPasswordHasher hasher)
     {
-        private readonly IPasswordHasher hasher;
-    
-        public IndexModel(IPasswordHasher hasher)
-        {
-            this.hasher = hasher;
-        }
-        
-        public void OnGet()
-        {
-            var password = "my password";
-            var passwordHash = hasher.HashPassword(password);
-            var passwordCheck = hasher.VerifyHashedPassword(passwordHash, password);
-        }
+        this.hasher = hasher;
     }
+    
+    public void OnGet()
+    {
+        var password = "my password";
+        var passwordHash = hasher.HashPassword(password);
+        var passwordCheck = hasher.VerifyHashedPassword(passwordHash, password);
+    }
+}
 ```
 
 ### Support or Contact
