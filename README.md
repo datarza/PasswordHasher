@@ -15,6 +15,8 @@ Some ideas for better implementation of PasswordHasher:
 
 ### Implementation
 
+[![Build Status](https://travis-ci.org/CanadianBeaver/PasswordHasher.svg?branch=master)](https://travis-ci.org/CanadianBeaver/PasswordHasher)
+
 The default password hasher for ASP.NET Core Identity uses <code>PBKDF2</code> for password hashing that is not support all hashing algorithms. The [Rfc2898DeriveBytes class](https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.rfc2898derivebytes?view=netcore-2.2) from the <code>System.Security.Cryptography</code> namespace supports all that we need to get the result we wanted. This class can generate pseudo-randomized salt and supports all SHA hashing algorithms.
 
 #### Method for hashing passwords
