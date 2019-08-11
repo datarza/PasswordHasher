@@ -1,6 +1,6 @@
 Did you like how the [PasswordHasher](https://github.com/aspnet/AspNetCore/blob/master/src/Identity/Extensions.Core/src/PasswordHasher.cs) was implemented in ASP.NET Core? What is the &lt;TUser> used for in class definition? Why only SHA1 and SHA256 are supported? Why the size of salt is a constant? Is the default ASP.NET Core implementation a good choice?
 
-## PasswordHasher could be better
+## PasswordHasher in ASP.NET Core could be better
 
 If you are not familiar with the default implementation of PasswordHasher in ASP.NET Core, I would like to recommend an [excellent article](https://andrewlock.net/exploring-the-asp-net-core-identity-passwordhasher) which explains everything.
 
