@@ -114,5 +114,5 @@ public class IndexModel : PageModel
 Having questions? [Contact me](https://github.com/CanadianBeaver) and I will help you sort it out.
 
 <style>
-.inner { max-width: 800px !important}
+.inner { min-width: 800px !important}
 </style>
