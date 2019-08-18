@@ -88,7 +88,7 @@ public void ConfigureServices(IServiceCollection services)
 }
 ```
 
-### Using example
+### Usage example
 
 ```csharp
 public class IndexModel : PageModel
